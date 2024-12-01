@@ -1,0 +1,80 @@
+#!/bin/bash
+
+# Log file location
+LOG_FILE="/var/log/driver_checker.log"
+
+# Function to check eligibility
+check_eligibility() {
+    local name=$1
+    local age=$2
+    local vision_rate=$3
+
+    if [[ $age -ge 18 && $vision_rate -ge 4 ]]; then
+        echo "$name:$age:$vision_rate:eligible" >> "$LOG_FILE"
+        echo "You are eligible for a driver's license."
+    else
+        echo "$name:$age:$vision_rate:not eligible" >> "$LOG_FILE"
+        echo "You are NOT eligible for a driver's license."
+    fi
+}
+
+# Handle "new" argument
+handle_new() {
+    echo "Enter your name:"
+    read -r name
+    echo "Enter your age:"
+    read -r age
+    echo "Enter your vision rate (1-6):"
+    read -r vision_rate
+
+    # Validate inputs
+    if ! [[ "$age" =~ ^[0-9]+$ ]] || ! [[ "$vision_rate" =~ ^[1-6]$ ]]; then
+        echo "Invalid input. Age must be a number, and vision rate must be between 1 and 6."
+        return
+    fi
+
+    check_eligibility "$name" "$age" "$vision_rate"
+}
+
+# Handle "get" argument
+handle_get() {
+    echo "Enter the name of the user:"
+    read -r search_name
+
+    if grep -q "^$search_name:" "$LOG_FILE"; then
+        grep "^$search_name:" "$LOG_FILE" | awk -F':' '{print $1 ":" $4}'
+    else
+        echo "No result found for user: $search_name"
+    fi
+}
+
+# Handle "list" argument
+handle_list() {
+    if [[ -s $LOG_FILE ]]; then
+        awk -F':' '{print $1 ":" $4}' "$LOG_FILE"
+    else
+        echo "No results found."
+    fi
+}
+
+# Main logic
+if [[ $# -ne 1 ]]; then
+    echo "Usage: $0 {new|get|list}"
+    exit 1
+fi
+
+case $1 in
+    new)
+        handle_new
+        ;;
+    get)
+        handle_get
+        ;;
+    list)
+        handle_list
+        ;;
+    *)
+        echo "Invalid argument. Usage: $0 {new|get/list}"
+        exit 1
+        ;;
+esac
